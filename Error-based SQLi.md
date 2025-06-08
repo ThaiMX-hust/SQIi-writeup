@@ -8,8 +8,8 @@ Hello mọi người!Chào mừng đến với writeup đầu tiên của mình 
 
 ### 1. Vấn đề của Blind SQLi
 
-Phản hồi của giao diện không thay đổi dù truy vấn SQL có trả về giágiá hay không. Ứng dụng không hiện thị dữ liệu truy vấn
-`OR 1=1 OR 1==2` thì giao diện trả về giông nhau nen không dùng được
+Phản hồi của giao diện không thay đổi dù truy vấn SQL có trả về giá trị hay không. Ứng dụng không hiện thị dữ liệu truy vấn
+`OR 1=1 OR 1==2` thì giao diện trả về giống nhau nên không dùng được.
 
 ### 2. Tạo lỗi có điều kiện ( Conditional Error )
 
@@ -21,7 +21,7 @@ Khi lỗi xảy ra thì giao diện có thể hiện thị lỗi
 
 `' AND (SELECT 1/0 FROM dual WHERE 'a'='a') -- `
 
-### 3. Các kiến thức sử dụngdụng
+### 3. Các kiến thức sử dụng
 
 ```sql
 CASE
